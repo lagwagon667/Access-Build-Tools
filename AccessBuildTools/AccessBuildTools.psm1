@@ -323,7 +323,8 @@ function Get-Version {
     return $gitVersion
 }
 
-<#
+function Publish-Accdb {
+    <#
 .SYNOPSIS
 Embeds external references into an Access ACCDB and injects startup code to
 unpack them at runtime.
@@ -377,8 +378,6 @@ Databases processed with Publish-Accdb cannot be compiled into an ACCDE using
 Convert-ToAccde. Publishing injects unpack/startup code that modifies the ACCDB
 internally, and such modifications are not compatible with ACCDE compilation.
 #>
-
-function Publish-Accdb {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
