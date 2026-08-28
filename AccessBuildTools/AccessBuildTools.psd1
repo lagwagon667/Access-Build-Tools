@@ -24,7 +24,7 @@
     Author            = 'David Korfkamp'
 
     # Company or vendor of this module
-    CompanyName       = ''
+    #CompanyName       = ''
 
     # Copyright statement for this module
     Copyright         = '(c) David Korfkamp. All rights reserved.'
@@ -51,13 +51,13 @@
     # ProcessorArchitecture = ''
 
     # Modules that must be imported into the global environment prior to importing this module
-    # RequiredModules = @()
+    RequiredModules   = @()
 
     # Assemblies that must be loaded prior to importing this module
     # RequiredAssemblies = @()
 
     # Script files (.ps1) that are run in the caller's environment prior to importing this module.
-    ScriptsToProcess  = @('Connection.ps1', 'ReferenceSpec.ps1')
+    ScriptsToProcess  = @()
 
     # Type files (.ps1xml) to be loaded when importing this module
     # TypesToProcess = @()
@@ -69,7 +69,7 @@
     # NestedModules = @()
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = @('Build-Accdb', 'Publish-Accdb' , 'Invoke-UnitTests' , 'Convert-ToAccde', 'Get-References')
+    FunctionsToExport = @('Build-Accdb', 'Publish-Accdb' , 'Invoke-UnitTests' , 'Convert-ToAccde', 'Get-References', 'New-Connection', 'New-ReferenceSpec')
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
     CmdletsToExport   = @()

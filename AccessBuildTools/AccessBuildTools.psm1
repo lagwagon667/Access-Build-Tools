@@ -1,3 +1,7 @@
+foreach ($class in Get-Item -Path "$PSScriptRoot\Classes\*.ps1") {
+    . $class
+}
+
 function Build-Accdb {
     <#
 .SYNOPSIS
@@ -61,7 +65,7 @@ Builds the database from the source folder and writes the result to the
 output path specified in my.accdb.src/dbs-properties.json.
 
 .EXAMPLE
-Build-Accdb -SourceFolder .\my.accdb.src\ -Force  -Connections @([Connection]::new("mydb_dsn", "username", "secret"))  -VersionFile .\my.accdb.src\forms\frmMain.form -VersionPattern 'Caption\s*=\s*"Version A\.B\.C"' -VersionReplacementPattern 'Caption ="Version $version ($date)"'
+Build-Accdb -SourceFolder .\my.accdb.src\ -Force  -Connections @((New-Connection -DSN "mydb_dsn" -User "username" -Password "secret"))  -VersionFile .\my.accdb.src\forms\frmMain.form -VersionPattern 'Caption\s*=\s*"Version A\.B\.C"' -VersionReplacementPattern 'Caption ="Version $version ($date)"'
 Builds the database, caches a database connection and injects a version number extracted from version.txt.
 
 .NOTES
@@ -77,13 +81,14 @@ compiling to ACCDE.
         [string]$VersionFile,
         [string]$VersionPattern,
         [string]$VersionReplacementPattern,
-        [Connection[]]$Connections,
+        [object[]]$Connections,
         [string]$VcsInstallPath,
         [string]$Output,
         [switch]$Force)
 
     try {
         $start = Get-Date
+        $conns = [object[]]$Connections
         $SourceFolder = [System.IO.Path]::GetFullPath($SourceFolder, (Get-Location))
         if (-not  (Test-Path $SourceFolder)) {
             throw "Source folder $SourceFolder not found. Aborting..."    
@@ -102,7 +107,7 @@ compiling to ACCDE.
             $json = Get-Content (Join-Path $SourceFolder "dbs-properties.json") -Raw | ConvertFrom-Json
             $rawName = $json.Items.Name.Value
     
-            $Output = $rawName.Split(':')[-1]
+            $Output = Join-Path (Split-Path $sourceFolder -Parent) $rawName.Split(':')[-1]
         }
         $Output = [System.IO.Path]::GetFullPath($Output, (Get-Location))
         Write-Debug "Set output to $Output"
@@ -162,7 +167,7 @@ compiling to ACCDE.
         $accessApp = Open-AccessWithoutStartupCommands -AccessDBPath $Output
             
         Write-Progress -Activity "Build-Accdb" -Status "Caching DB Connections..." -PercentComplete 30
-        CacheDBConnections -AccessApp $accessApp -Connections $Connections
+        CacheDBConnections -AccessApp $accessApp -Connections $conns
         
         Write-Debug "Building database $output"
         Write-Progress -Activity "Build-Accdb" -Status "Building..." -PercentComplete 100
@@ -262,28 +267,28 @@ provided, the module attempts to locate the add‑in in the standard default
 location.
 
 .EXAMPLE
-Invoke-UnitTests -AccessDBPath .\myunittestdb.accdb -Connections @([Connection]::new("mydb_dsn", "username", "secret"))
+Invoke-UnitTests -AccessDBPath .\myunittestdb.accdb -Connections @((New-Connection -DSN "mydb_dsn" -User "username" -Password "secret"))
 Runs all tests in the myunittestdb.accdb folder.
 #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [string]$AccessDBPath,
-        [Connection[]]$Connections,
+        [object[]]$Connections,
         [string]$VcsInstallPath)
     try {
         $start = Get-Date
+        $conns = [Connection[]]$Connections
         $AccessDBPath = [System.IO.Path]::GetFullPath($AccessDBPath, (Get-Location))
         if (-not (Test-Path $AccessDBPath)) {
             throw "Acccess DB $AccessDBPath not found."
         }
-            
         Write-Progress -Activity "Invoke-UnitTests" -Status "Checking prerequisites..." -PercentComplete 10 
         $vcsApi = Get-VcsApi -VcsInstallPath $VcsInstallPath
         $accessApp = Open-AccessWithoutStartupCommands -AccessDBPath $AccessDBPath
     
         Write-Progress -Activity "Invoke-UnitTests" -Status "Caching DB Connections..." -PercentComplete 20 
-        CacheDBConnections -AccessApp $accessApp -Connections $Connections
+        CacheDBConnections -AccessApp $accessApp -Connections $conns
 
         Write-Progress -Activity "Invoke-UnitTests" -Status "Running Unit Tests..." -PercentComplete 100 
         $result = $accessApp.Run($vcsApi, "RunTestsHeadless") | ConvertFrom-Json
@@ -296,7 +301,7 @@ Runs all tests in the myunittestdb.accdb folder.
         else {
             $failCount = $result.summary.failed + $result.summary.errored
             $test = $failCount -eq 1 ? "test" : "tests"
-            Write-Host "$failCount unit $test from $AccessDBPath finished with errors. Duration: $elapsedStr"
+            Write-Error "$failCount unit $test from $AccessDBPath finished with errors. Duration: $elapsedStr"
         }
     }
     finally {
@@ -368,7 +373,7 @@ in conjunction with the Output parameter
 
 .EXAMPLE
 Publish-Accdb -AccessDBPath "my.accdb" -ReferencesToEmbed  `
-    @([ReferenceSpec]::new("ref.accdb", $true), [ReferenceSpec]::new("ref.dll", $false)) `
+    @((New-ReferenceSpec -Name "refA" -ApplyTheme $true), (New-ReferenceSpec -Name "refB" -ApplyTheme $false)) `
     -Output "dist\my.accdb" -Force
 Embeds the specified references into the ACCDB and writes the published version
 to the given output path, overwritting it if it already exists.
@@ -383,17 +388,18 @@ internally, and such modifications are not compatible with ACCDE compilation.
         [Parameter(Mandatory)]
         [string]$AccessDBPath,
         [Parameter(Mandatory)]
-        [ReferenceSpec[]]$ReferencesToEmbed,
+        [object[]]$ReferencesToEmbed,
         [string]$Output,
         [switch]$Force
     )
     try {
         $start = Get-Date
-        
+                
         Write-Debug "Start publishing Access DB"
         if (-not $ReferencesToEmbed -or $ReferencesToEmbed.Count -eq 0) {
             throw "No references to embed provided. Exiting..."
         }
+        $refsToEmbed = [ReferenceSpec[]]$ReferencesToEmbed
 
         Write-Progress -Activity "Publish-Accdb" -Status "Checking prerequisites..." -PercentComplete 10 
         
@@ -415,7 +421,7 @@ internally, and such modifications are not compatible with ACCDE compilation.
         $accessApp = Open-AccessWithoutStartupCommands -AccessDbPath $Output
         $dbName = [System.IO.Path]::GetFileNameWithoutExtension($Output)
         
-        Publish -AccessApp $accessApp -DbName $dbName -ReferencesToEmbed $ReferencesToEmbed -CurrentProgress 10
+        Publish -AccessApp $accessApp -DbName $dbName -ReferencesToEmbed $refsToEmbed -CurrentProgress 10
         
         $elapsed = (Get-Date) - $start
         $elapsedStr = "{0:hh\:mm\:ss}" -f $elapsed
@@ -1386,5 +1392,22 @@ Export-ModuleMember -Function Publish-Accdb
 Export-ModuleMember -Function Invoke-UnitTests
 Export-ModuleMember -Function Convert-ToAccde
 Export-ModuleMember -Function Get-References
+
+# $typeAcceleratorsClass = [psobject].Assembly.GetType(
+#     'System.Management.Automation.TypeAccelerators'
+# )
+
+# $typesToExport = @("ReferenceSpec", "Connection")
+# foreach ($typeToExport in  $typesToExport) {
+#     $type = $typeToExport -as [System.Type]
+#     if (-not $type) {
+#         Write-Error -Message (
+#             'Unable to export {0}. Type not found.' -f $typeToExport
+#         )
+#     }
+#     else {
+#         $null = $TypeAcceleratorsClass::Add($typeToExport, $type)
+#     }
+# }
 
 Write-Host "Access Build Tools ready to use"
