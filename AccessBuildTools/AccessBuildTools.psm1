@@ -218,7 +218,36 @@ function Get-VcsApi {
         return "$vcsAddinFolder\Version Control.API"
     }
 
-    throw "VCS addin not found. Please install and try again."
+    $tmpAddinFolder = (Join-Path $env:AppData "MSAccessVCS.Build")
+    $tmpCandidate = (Join-Path $tmpAddinFolder "Version Control.accda")
+    Write-Debug "VCS addin not installed. Downloading addin to $tmpCandidate for installation."
+    
+    $sourceUrl = "https://github.com/lagwagon667/msaccess-vcs-addin/releases/download/v5.1.0-alpha-1/Version.Control.zip"
+
+    if (-not (Test-Path $tmpAddinFolder)) {
+        New-Item -ItemType Directory -Path $tmpAddinFolder | Out-Null
+    }
+        
+    $zip = (Join-Path $tmpAddinFolder "Version Control.zip")
+    Invoke-WebRequest -Uri $sourceUrl -OutFile $zip
+    Expand-Archive -Path $zip -DestinationPath $tmpAddinFolder -Force
+    Remove-Item $zip
+
+    Add-AccessTemporaryTrustedLocation -Path $tmpAddinFolder -Key "AccessBuildToolsInstallVcsAddin"
+
+    Write-Debug "Installing VCS addin to default location..."
+    $process = Start-Process -FilePath "msaccess.exe" `
+        -ArgumentList """$tmpCandidate"" /cmd INSTALL SILENT" `
+        -WindowStyle Hidden `
+        -PassThru
+    $process.WaitForExit()
+        
+    Remove-AccessTemporaryTrustedLocation -Key "AccessBuildToolsInstallVcsAddin"
+    
+    Write-Debug "Cleaning up..."
+    Remove-Item $tmpAddinFolder -Recurse -Force
+    # Write-Debug "Found VCS addin in $vcsAddinFolder..."
+    return "$vcsAddinFolder\Version Control.API"
 }
 function CacheDBConnections {
     param(
@@ -595,7 +624,8 @@ Returns all references defined in the specified ACCDB.
 function Open-AccessWithoutStartupCommands {
     param(
         [Parameter(Mandatory)]
-        [string]$AccessDbPath
+        [string]$AccessDbPath,
+        [string]$Parameters
     )
 
     $env:ACCESS_NO_AUTOEXEC = "1"
@@ -604,6 +634,10 @@ function Open-AccessWithoutStartupCommands {
         $accessApp.Visible = $true
     }
     $accessApp.SetOption("Error Trapping", [ref]2) # 2 = on unhandled errors
+    if ($Parameters) {
+        Write-Debug "Parameters set to $Parameters..."
+        $accessApp.Command = $Parameters
+    }
 
     if (Test-Path $AccessDbPath) {
         Write-Debug "Opening existing database $AccessDbPath"
