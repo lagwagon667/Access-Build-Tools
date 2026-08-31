@@ -236,9 +236,10 @@ function Get-VcsApi {
     Add-AccessTemporaryTrustedLocation -Path $tmpAddinFolder -Key "AccessBuildToolsInstallVcsAddin"
 
     Write-Debug "Installing VCS addin to default location..."
+    $windowStyle = if ($IsDebugMode) { 'Normal' } else { 'Hidden' }
     $process = Start-Process -FilePath "msaccess.exe" `
         -ArgumentList """$tmpCandidate"" /cmd INSTALL SILENT" `
-        -WindowStyle Hidden `
+        -WindowStyle $windowStyle `
         -PassThru
     $process.WaitForExit()
         
