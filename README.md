@@ -4,8 +4,13 @@
 
 # 📦 Access Build Tools
 
-A PowerShell module for **building Microsoft Access databases from source**.  
+A PowerShell module for **building Microsoft Access databases from source**, e.g. for usage in automated CI/CD workflows.
+
 It is designed to support a full build pipeline including versioning, publishing, testing, and ACCDE compilation.
+
+A substantial part of this module is built on Adam Waller's [MS Access VCS add‑in](https://github.com/joyfullservice/msaccess-vcs-addin). Many thanks for making this tool available.
+
+If this module does not meet your needs, consider checking out [msaccess-vcs-build](https://github.com/AccessCodeLib/msaccess-vcs-build). It is another PowerShell‑based build script with a different feature set.
 
 ---
 
