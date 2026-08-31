@@ -11,7 +11,7 @@ It is designed to support a full build pipeline including versioning, publishing
 
 ## ⚙️ Requirements
 
-To use the build script, the following components must be installed on the system:
+To use the build cmdlets, the following components must be installed on the system:
 
 ### **Microsoft Access**
 
@@ -98,3 +98,7 @@ Use this workflow when you want a **final ACCDE** for deployment.
 2. **Invoke-UnitTests**
 3. **Convert-ToAccde**  
    (Produces the compiled ACCDE)
+
+## 🐞 Troubleshooting
+
+For troubleshooting, run any of the cmdlets with the `-debug` switch to make the Access UI visible and enable verbose console output.
