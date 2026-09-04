@@ -69,7 +69,7 @@
     # NestedModules = @()
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = @('Build-Accdb', 'Publish-Accdb' , 'Invoke-UnitTests' , 'Convert-ToAccde', 'Get-References', 'New-Connection', 'New-ReferenceSpec')
+    FunctionsToExport = @('Build-Accdb', 'Publish-Accdb' , 'Invoke-UnitTests', 'Invoke-VbaCommand' , 'Convert-ToAccde', 'Get-References', 'New-Connection', 'New-ReferenceSpec', 'Get-Version')
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
     CmdletsToExport   = @()

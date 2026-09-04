@@ -342,6 +342,41 @@ Runs all tests in the myunittestdb.accdb folder.
 }
 
 function Get-Version {
+    <#
+.SYNOPSIS
+Determines the version information of the current Git repository using GitVersion.
+
+.DESCRIPTION
+Get-Version retrieves structured version metadata for the current Git repository.
+It uses the GitVersion executable to calculate semantic version information based
+on commit history, tags, and repository configuration.
+
+The function has no parameters.
+
+If GitVersion is not available locally, Get-Version automatically downloads the
+required GitVersion executable from the internet and stores it under:
+
+    %LOCALAPPDATA%\gitVersion\6.8.2\gitversion.exe
+
+Once GitVersion is ensured to be present, the function invokes it and returns the
+full GitVersion result object (JSON converted to PowerShell objects). This object
+contains all GitVersion attributes, such as:
+
+    - Major, Minor, Patch
+    - PreReleaseTag
+    - FullSemVer
+    - InformationalVersion
+    - BuildMetaData
+    - CommitDate
+    - BranchName
+    - Sha
+    - And many more
+
+.OUTPUTS
+PSCustomObject
+Returns the complete GitVersion metadata object with all calculated attributes.
+#>
+
     Write-Debug "Determining version..."
     $gitVersionFolder = Join-Path -Path $env:LOCALAPPDATA -ChildPath "gitVersion\6.8.2"
     $gitVersionTool = Join-Path -Path $gitVersionFolder -ChildPath "gitVersion.exe"
@@ -356,6 +391,104 @@ function Get-Version {
 
     $gitVersion = & $gitversionTool @('/l', 'gitVersion.log') | ConvertFrom-Json
     return $gitVersion
+}
+
+function Invoke-VbaCommand {
+    <#
+.SYNOPSIS
+Invokes a VBA procedure inside an Access database with optional startup waiting
+and a dynamic number of arguments.
+
+.DESCRIPTION
+Invoke-VbaCommand opens the specified Access database, waits until Access is
+ready (if requested), and then calls the given VBA procedure using
+Access.Application.Run.
+
+The function supports a dynamic number of arguments. All remaining PowerShell
+arguments after -VbaCommand are forwarded to the VBA procedure in the order
+they are provided.
+
+This allows calling VBA procedures with any number of parameters, including
+COM objects such as custom loggers.
+
+.PARAMETER AccessDBPath
+The full file system path to the Access database (.accdb or .mdb) that contains
+the VBA procedure to be invoked.
+
+.PARAMETER StartupTimeout
+Optional number of milliseconds to wait for Access to finish starting up before
+the VBA command is executed. A value of 0 means no waiting.
+
+.PARAMETER VbaCommand
+The name of the VBA procedure to invoke. This must match the name of a public
+Sub or Function inside the Access database.
+
+.PARAMETER Args
+A dynamic list of arguments passed to the VBA procedure. These arguments are
+forwarded positionally to Access.Application.Run. This parameter uses
+ValueFromRemainingArguments to allow flexible invocation.
+
+.EXAMPLE
+Invoke-VbaCommand -AccessDBPath "C:\Data\MyApp.accdb" `
+                  -VbaCommand "RunAllTests" `
+                  "E:\results.xml" $true $logger
+
+Invokes the VBA procedure RunAllTests with three arguments: a file path, a
+Boolean value, and a COM logger object.
+
+.EXAMPLE
+Invoke-VbaCommand -AccessDBPath "C:\Data\MyApp.accdb" `
+                  -StartupTimeout 2000 `
+                  -VbaCommand "Initialize"
+
+Opens the database, waits up to 2 seconds for Access to be ready, and then
+invokes the VBA procedure Initialize without parameters.
+
+.NOTES
+This function supports VBA Subs and Modules with up to 10 arguments.
+
+The function does not validate the existence of the VBA procedure; Access will
+raise an error if the procedure cannot be found or invoked.
+#>
+    param(
+        [Parameter(Mandatory)]
+        [string]$AccessDBPath,
+        [int]$StartupTimeout = 0,
+        [Parameter(Mandatory)]
+        [string]$VbaCommand,
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Args
+    )
+    $AccessDBPath = [System.IO.Path]::GetFullPath($AccessDBPath, (Get-Location))
+    Write-Debug "Opening Access DB $AccesDBPath..."
+    $accessApp = Open-AccessWithoutStartupCommands -AccessDbPath $AccessDBPath
+    if ($StartupTimeout -gt 0) {
+        Write-Debug "Sleeping for $StartupTimeout ms..."
+        Start-Sleep -Milliseconds $StartupTimeout
+        Write-Debug "Finished sleeping for $StartupTimeout ms..."
+    }
+    
+    Write-Debug "Invoking $VbaCommand($Args)..."
+    
+    switch ($Args.Count) {
+        0 { $accessApp.Run($VbaCommand) }
+        1 { $accessApp.Run($VbaCommand, $Args[0]) }
+        2 { $accessApp.Run($VbaCommand, $Args[0], $Args[1]) }
+        3 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2]) }
+        4 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2], $Args[3]) }
+        5 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2], $Args[3], $Args[4]) }
+        6 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2], $Args[3], $Args[4], $Args[5]) }
+        7 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2], $Args[3], $Args[4], $Args[5], $Args[6]) }
+        8 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2], $Args[3], $Args[4], $Args[5], $Args[6], $Args[7]) }
+        9 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2], $Args[3], $Args[4], $Args[5], $Args[6], $Args[7], $Args[8]) }
+        10 { $accessApp.Run($VbaCommand, $Args[0], $Args[1], $Args[2], $Args[3], $Args[4], $Args[5], $Args[6], $Args[7], $Args[8], $Args[9]) }
+        default {
+            throw "Too many arguments for Access.Run"
+        }
+    }
+
+    Write-Debug "Finished Invoking $VbaCommand($Args)..."
+    Close-AccessInstance -AccessApp $accessApp
 }
 
 function Publish-Accdb {
@@ -1425,8 +1558,10 @@ End Function
 Export-ModuleMember -Function Build-Accdb
 Export-ModuleMember -Function Publish-Accdb
 Export-ModuleMember -Function Invoke-UnitTests
+Export-ModuleMember -Function Invoke-VbaCommand
 Export-ModuleMember -Function Convert-ToAccde
 Export-ModuleMember -Function Get-References
+Export-ModuleMember -Function Get-Version
 
 # $typeAcceleratorsClass = [psobject].Assembly.GetType(
 #     'System.Management.Automation.TypeAccelerators'
