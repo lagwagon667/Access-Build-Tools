@@ -274,7 +274,7 @@ function CacheDBConnections {
 function Invoke-UnitTests {
     <#
 .SYNOPSIS
-Runs all tests in the project.
+Runs all tests in the project. Tests can optionally be filtered.
 
 .DESCRIPTION
 Executes unit tests defined in the Access project and reports results. 
@@ -283,6 +283,9 @@ test format. The ms-access-vcs test runner will be used for running the tests.
 
 .PARAMETER AccessDBPath
 Path to the Access Database containing the tests.
+
+.PARAMETER Filter
+Optional filter string for selecting the tests to run.
 
 .PARAMETER Connections
 An array of database‑connection descriptor objects used to initialize and cache
@@ -304,6 +307,7 @@ Runs all tests in the myunittestdb.accdb folder.
     param(
         [Parameter(Mandatory)]
         [string]$AccessDBPath,
+        [string]$Filter,
         [object[]]$Connections,
         [string]$VcsInstallPath)
     try {
@@ -321,7 +325,12 @@ Runs all tests in the myunittestdb.accdb folder.
         CacheDBConnections -AccessApp $accessApp -Connections $conns
 
         Write-Progress -Activity "Invoke-UnitTests" -Status "Running Unit Tests..." -PercentComplete 100 
-        $result = $accessApp.Run($vcsApi, "RunTestsHeadless") | ConvertFrom-Json
+        if ([string]::IsNullOrWhiteSpace($Filter)) {
+            $result = $accessApp.Run($vcsApi, "RunTestsHeadless") | ConvertFrom-Json
+        }
+        else {
+            $result = $accessApp.Run($vcsApi, "RunTestsHeadless", $Filter) | ConvertFrom-Json
+        }
         $elapsed = (Get-Date) - $start
         $elapsedStr = "{0:hh\:mm\:ss}" -f $elapsed
         if ($result.allPassed) {
