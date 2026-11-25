@@ -22,13 +22,11 @@ To use the build cmdlets, the following components must be installed on the syst
 
 ### **Microsoft Access**
 
-### **[JoyfullService/ms-access-vcs Add-In](https://github.com/joyfullservice/msaccess-vcs-addin)** [v5.1-alpha or newer](https://github.com/lagwagon667/msaccess-vcs-addin/releases/download/v5.1.0-alpha-1/Version.Control.zip)
+### **[JoyfullService/ms-access-vcs Add-In](https://github.com/joyfullservice/msaccess-vcs-addin)** [>=v5.1](https://github.com/joyfullservice/msaccess-vcs-addin/releases/download/v5.1.0/Version_Control_v5.1.0.zip)
 
 (used for exporting/importing Access objects as source files)
 
 If the MS‑Access‑VCS add‑in is not already present, the module will automatically download and install it.
-
-> **Note:** At the moment, the add‑in is downloaded from an unofficial source because the latest official release does not yet include the required automation changes. Once these updates are available in an official build, the download URL will be switched accordingly. To avoid automatic retrieval of unofficial builds, you can build the add‑in yourself from the dev branch and install it manually on your build runner.
 
 > **Note:** If you are using MS‑Access‑VCS add‑in version 5.0.1 or earlier, the build will fail because these versions do not include the functions required for automation.
 

@@ -222,7 +222,7 @@ function Get-VcsApi {
     $tmpCandidate = (Join-Path $tmpAddinFolder "Version Control.accda")
     Write-Debug "VCS addin not installed. Downloading addin to $tmpCandidate for installation."
     
-    $sourceUrl = "https://github.com/lagwagon667/msaccess-vcs-addin/releases/download/v5.1.0-alpha-1/Version.Control.zip"
+    $sourceUrl = "https://github.com/joyfullservice/msaccess-vcs-addin/releases/download/v5.1.0/Version_Control_v5.1.0.zip"
 
     if (-not (Test-Path $tmpAddinFolder)) {
         New-Item -ItemType Directory -Path $tmpAddinFolder | Out-Null
